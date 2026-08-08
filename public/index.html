@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#eef1e8" />
+  <title>Ashgrove | Residency Assessment</title>
+  <meta name="description" content="Discover whether Ashgrove fits your future." />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header">
+      <a class="brand" href="#" aria-label="Ashgrove home">
+        <span class="brand-mark">A</span>
+        <span>
+          <strong>ASHGROVE</strong>
+          <small>Community Development Corporation</small>
+        </span>
+      </a>
+      <span class="header-note">Private community assessment</span>
+    </header>
+
+    <main>
+      <section id="intro" class="hero panel">
+        <p class="eyebrow">YOUR FUTURE, BEAUTIFULLY PLANNED</p>
+        <h1>Find out if Ashgrove fits your future.</h1>
+        <p class="lede">Our initial residency assessment takes about two minutes. Your answers help us understand the community environment in which you are most likely to thrive.</p>
+        <div class="hero-grid">
+          <div>
+            <span class="metric">2 min</span>
+            <span class="metric-label">average completion time</span>
+          </div>
+          <div>
+            <span class="metric">8</span>
+            <span class="metric-label">initial questions</span>
+          </div>
+          <div>
+            <span class="metric">Private</span>
+            <span class="metric-label">prototype assessment</span>
+          </div>
+        </div>
+        <button id="startButton" class="primary-button" type="button">Begin assessment</button>
+        <p class="fine-print">Prototype for the fictional Ashgrove universe.</p>
+      </section>
+
+      <section id="survey" class="survey panel hidden" aria-live="polite">
+        <div class="survey-topline">
+          <span id="stepLabel">Question 1 of 8</span>
+          <span id="progressPercent">12%</span>
+        </div>
+        <div class="progress-track" aria-hidden="true">
+          <div id="progressBar" class="progress-bar"></div>
+        </div>
+
+        <form id="assessmentForm" novalidate>
+          <div id="questionMount"></div>
+          <p id="validationMessage" class="validation" role="alert"></p>
+          <div class="survey-actions">
+            <button id="backButton" class="secondary-button" type="button">Back</button>
+            <button id="nextButton" class="primary-button" type="button">Continue</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="results" class="results panel hidden" aria-live="polite">
+        <p class="eyebrow">INITIAL ASSESSMENT COMPLETE</p>
+        <div class="score-ring" id="scoreRing">
+          <span id="scoreValue">84</span>
+          <small>compatibility</small>
+        </div>
+        <h2 id="resultTitle">Strong Community Candidate</h2>
+        <p id="resultCopy" class="lede"></p>
+
+        <div id="resultBreakdown" class="result-grid"></div>
+
+        <div class="quiet-reveal">
+          <span>Preliminary placement note</span>
+          <strong id="placementNote"></strong>
+        </div>
+
+        <button id="restartButton" class="secondary-button" type="button">Start over</button>
+        <p class="fine-print">This prototype intentionally keeps the deeper Ashgrove scoring model behind the interface. Protected characteristics are not used in this demo score.</p>
+      </section>
+    </main>
+
+    <footer>
+      <span>ASHGROVE</span>
+      <span>Live well. Grow together.</span>
+      <span>Assessments completed: <strong id="assessmentCount">5,389</strong></span>
+    </footer>
+  </div>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>
