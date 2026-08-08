@@ -105,16 +105,13 @@ const questions = [
   }
 ];
 
-const priorityQuestions = [
+const priorityBaseQuestions = [
   {
     id: 'sex',
     label: 'PRIORITY PROFILE',
     title: 'How should we classify your profile?',
     help: 'This information helps tailor the next stage of your Ashgrove orientation profile.',
-    options: [
-      ['male', 'Male'],
-      ['female', 'Female']
-    ]
+    options: [['male', 'Male'], ['female', 'Female']]
   },
   {
     id: 'careerGoal',
@@ -132,10 +129,110 @@ const priorityQuestions = [
   }
 ];
 
+const femalePriorityQuestions = [
+  {
+    id: 'relationshipOutlook',
+    label: 'HOUSEHOLD OUTLOOK',
+    title: 'Which future feels most natural to you?',
+    help: 'Ashgrove uses household planning to coordinate housing, schools, services and long-term placement.',
+    options: [
+      ['independent', 'Maintain an independent household'],
+      ['partnered', 'Build a long-term partnership'],
+      ['marriage', 'Marriage and family life'],
+      ['family-centered', 'A strongly family-centered household']
+    ]
+  },
+  {
+    id: 'financialModel',
+    label: 'HOUSEHOLD COORDINATION',
+    title: 'How should finances work in a committed household?',
+    help: 'There is no required model. We use this to understand how naturally your preferences align with Ashgrove households.',
+    options: [
+      ['separate', 'Mostly separate finances'],
+      ['shared-plan', 'Separate accounts with shared planning'],
+      ['mostly-shared', 'Mostly shared household finances'],
+      ['unified', 'One unified household budget']
+    ]
+  },
+  {
+    id: 'decisionModel',
+    label: 'HOUSEHOLD GOVERNANCE',
+    title: 'When an important decision cannot be resolved, what feels healthiest?',
+    help: 'Think about relocation, major purchases, schooling or other long-term household decisions.',
+    options: [
+      ['delay', 'Delay until everyone agrees'],
+      ['domains', 'Each partner leads in different areas'],
+      ['designated-lead', 'One partner takes final responsibility when needed'],
+      ['partner-lead', 'I am comfortable with my partner taking final responsibility']
+    ]
+  },
+  {
+    id: 'careerAdjustment',
+    label: 'FAMILY CONTINUITY',
+    title: 'If family needs changed, how flexible would you be about your career path?',
+    help: 'For example, during pregnancy, early childhood, elder care or a spouse’s major professional transition.',
+    options: [
+      ['minimal', 'I would prefer to keep my career path unchanged'],
+      ['temporary', 'I would consider temporary adjustments'],
+      ['significant', 'I would make significant adjustments if needed'],
+      ['household-first', 'I would prioritize the household plan over my individual career path']
+    ]
+  },
+  {
+    id: 'privacyModel',
+    label: 'HOUSEHOLD TRANSPARENCY',
+    title: 'How much personal privacy should exist inside a committed household?',
+    help: 'Ashgrove households often use shared calendars, health planning, transportation tools and family accounts.',
+    options: [
+      ['strong', 'Strong individual privacy'],
+      ['practical', 'Privacy with practical sharing'],
+      ['open', 'Broad transparency between partners'],
+      ['integrated', 'Very little should need to be private from a spouse']
+    ]
+  },
+  {
+    id: 'familyPlanning',
+    label: 'CONTINUITY PLANNING',
+    title: 'How comfortable would you be including family growth in long-term household planning?',
+    help: 'This can include housing eligibility, childcare capacity, leave planning and voluntary health guidance.',
+    options: [
+      ['private', 'I would keep family planning entirely private'],
+      ['medical', 'Medical guidance only'],
+      ['planning', 'I would include it in household planning'],
+      ['coordinated', 'I would welcome coordinated household and community planning']
+    ]
+  },
+  {
+    id: 'wellnessSharing',
+    label: 'HOUSEHOLD WELLNESS',
+    title: 'If Ashgrove detected a pattern that could affect household stability, who should be notified?',
+    help: 'Examples might include sustained stress, disrupted sleep, unusual financial strain or repeated schedule conflict.',
+    options: [
+      ['self', 'Only me'],
+      ['ask-first', 'Ask me before sharing anything'],
+      ['partner-summary', 'My spouse or partner may receive a general summary'],
+      ['partner-proactive', 'My spouse or partner may receive proactive household guidance']
+    ]
+  },
+  {
+    id: 'conflictPriority',
+    label: 'LONG-TERM STABILITY',
+    title: 'If your personal preference conflicts with an established household plan, what should carry the most weight?',
+    help: 'This is the final compatibility question in your Priority Profile Review.',
+    options: [
+      ['individual', 'My individual preference'],
+      ['compromise', 'A negotiated compromise'],
+      ['household', 'The long-term household plan'],
+      ['lead', 'The decision of the partner carrying final household responsibility']
+    ]
+  }
+];
+
 const answers = {};
 const priorityAnswers = {};
 let currentIndex = 0;
 let priorityIndex = 0;
+let priorityQuestions = [];
 let inPriorityFollowup = false;
 const COUNTED_KEY = 'ashgrove-assessment-counted-v1';
 
@@ -206,9 +303,15 @@ function renderQuestion() {
   questionMount.innerHTML = `<div class="question-number">${q.label}</div><h2 class="question-title">${q.title}</h2><p class="question-help">${q.help}</p><div class="option-list">${options}</div>`;
 }
 
+function buildPriorityQuestions() {
+  priorityQuestions = priorityAnswers.sex === 'female'
+    ? [...priorityBaseQuestions, ...femalePriorityQuestions]
+    : [...priorityBaseQuestions];
+}
+
 function renderPriorityQuestion() {
   const q = priorityQuestions[priorityIndex];
-  const percent = priorityIndex === 0 ? 50 : 100;
+  const percent = Math.round(((priorityIndex + 1) / priorityQuestions.length) * 100);
   stepLabel.textContent = `Priority profile ${priorityIndex + 1} of ${priorityQuestions.length}`;
   progressPercent.textContent = `${percent}%`;
   progressBar.style.width = `${percent}%`;
@@ -222,13 +325,11 @@ function renderPriorityQuestion() {
     return `<label class="option-row"><input type="radio" name="${q.id}" value="${value}" ${checked} /><span>${label}</span></label>`;
   }).join('');
 
-  questionMount.innerHTML = `
-    ${priorityIndex === 0 ? '<p class="eyebrow">PRELIMINARY MATCH 90+</p><h2 class="question-title">You qualify for Priority Profile Review.</h2><p class="question-help">We need two additional details to complete your preliminary placement profile.</p>' : ''}
-    <div class="question-number">${q.label}</div>
-    <h2 class="question-title">${q.title}</h2>
-    <p class="question-help">${q.help}</p>
-    <div class="option-list">${options}</div>
-  `;
+  const introCopy = priorityIndex === 0
+    ? '<p class="eyebrow">PRELIMINARY MATCH 90+</p><h2 class="question-title">You qualify for Priority Profile Review.</h2><p class="question-help">A small number of additional questions will help us complete your preliminary placement profile.</p>'
+    : '';
+
+  questionMount.innerHTML = `${introCopy}<div class="question-number">${q.label}</div><h2 class="question-title">${q.title}</h2><p class="question-help">${q.help}</p><div class="option-list">${options}</div>`;
 }
 
 function collectAnswer() {
@@ -254,6 +355,10 @@ function collectPriorityAnswer() {
     return false;
   }
   priorityAnswers[q.id] = selected.value;
+
+  if (q.id === 'sex') {
+    buildPriorityQuestions();
+  }
   return true;
 }
 
@@ -288,11 +393,17 @@ function calculateResults() {
     { label: 'Lifestyle Fit', value: answers.mobility === 'high' ? 'Exceptional' : answers.mobility === 'medium' ? 'Strong' : 'Moderate' }
   ];
 
+  if (priorityAnswers.sex === 'female' && priorityAnswers.conflictPriority) {
+    categories.push({ label: 'Household Alignment', value: formatHouseholdAlignment() });
+  }
+
   let title = 'Promising Community Candidate';
   let copy = 'Your answers suggest that several elements of Ashgrove may align with the future you described.';
   if (score >= 90) {
     title = 'Priority Community Candidate';
-    copy = 'Your profile shows exceptional alignment with Ashgrove’s long-term community model and qualifies for priority profile review.';
+    copy = priorityAnswers.sex === 'female'
+      ? 'Your profile shows exceptional alignment and has been evaluated for both professional contribution and long-term household compatibility.'
+      : 'Your profile shows exceptional alignment with Ashgrove’s long-term community model and qualifies for priority profile review.';
   } else if (score >= 88) {
     title = 'Exceptional Community Candidate';
     copy = 'Your profile shows unusually strong alignment with Ashgrove’s long-term community model.';
@@ -322,6 +433,23 @@ function formatCareerGoal(value) {
     homemaker: 'Home & Family Management'
   };
   return labels[value] || 'To be determined';
+}
+
+function formatHouseholdAlignment() {
+  const aligned = [
+    priorityAnswers.financialModel === 'unified',
+    ['designated-lead', 'partner-lead'].includes(priorityAnswers.decisionModel),
+    ['significant', 'household-first'].includes(priorityAnswers.careerAdjustment),
+    ['open', 'integrated'].includes(priorityAnswers.privacyModel),
+    ['planning', 'coordinated'].includes(priorityAnswers.familyPlanning),
+    ['partner-summary', 'partner-proactive'].includes(priorityAnswers.wellnessSharing),
+    ['household', 'lead'].includes(priorityAnswers.conflictPriority)
+  ].filter(Boolean).length;
+
+  if (aligned >= 6) return 'Exceptional';
+  if (aligned >= 4) return 'Strong';
+  if (aligned >= 2) return 'Moderate';
+  return 'Independent';
 }
 
 function showResults() {
@@ -360,6 +488,7 @@ nextButton.addEventListener('click', () => {
     if (result.score >= 90) {
       inPriorityFollowup = true;
       priorityIndex = 0;
+      priorityQuestions = [...priorityBaseQuestions];
       renderPriorityQuestion();
     } else {
       showResults();
@@ -393,6 +522,7 @@ document.getElementById('restartButton').addEventListener('click', () => {
   Object.keys(priorityAnswers).forEach(key => delete priorityAnswers[key]);
   currentIndex = 0;
   priorityIndex = 0;
+  priorityQuestions = [];
   inPriorityFollowup = false;
   results.classList.add('hidden');
   intro.classList.remove('hidden');
