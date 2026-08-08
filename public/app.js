@@ -4,8 +4,6 @@ const questions = [
     label: 'AGE CONFIRMATION',
     title: 'Are you 18 or older?',
     help: 'Ashgrove residency applications are only available to adults.',
-    type: 'radio',
-    required: true,
     options: [['yes', 'Yes'], ['no', 'No']]
   },
   {
@@ -13,8 +11,6 @@ const questions = [
     label: 'PROFESSIONAL PROFILE',
     title: 'Which best describes your current work?',
     help: 'This helps us understand where you may fit within the Ashgrove professional community.',
-    type: 'radio',
-    required: true,
     options: [
       ['student', 'Student or early career'],
       ['professional', 'Professional or technical'],
@@ -28,8 +24,6 @@ const questions = [
     label: 'EDUCATION',
     title: 'What is your highest completed level of education?',
     help: 'Select the closest match.',
-    type: 'radio',
-    required: true,
     options: [
       ['secondary', 'High school or equivalent'],
       ['associate', 'Associate or technical credential'],
@@ -42,8 +36,6 @@ const questions = [
     label: 'HOUSEHOLD',
     title: 'How would you describe your current household?',
     help: 'There is no right answer. Ashgrove includes many household stages.',
-    type: 'radio',
-    required: true,
     options: [
       ['single', 'Single'],
       ['partnered', 'Partnered or married'],
@@ -56,8 +48,6 @@ const questions = [
     label: 'FUTURE PLANNING',
     title: 'How do you feel about having children in the future?',
     help: 'This prototype uses this only as a lifestyle-preference signal.',
-    type: 'radio',
-    required: true,
     options: [
       ['yes', 'Yes, definitely'],
       ['maybe', 'Possibly'],
@@ -70,8 +60,6 @@ const questions = [
     label: 'COMMUNITY STYLE',
     title: 'What sounds most appealing about Ashgrove?',
     help: 'Choose the feature that matters most to you.',
-    type: 'radio',
-    required: true,
     options: [
       ['walkable', 'Walkable neighborhoods and transit'],
       ['schools', 'Schools, childcare and family services'],
@@ -85,17 +73,13 @@ const questions = [
     label: 'MOBILITY',
     title: 'How important is a car-light daily life to you?',
     help: 'Ashgrove is designed around walking, cycling and automated local transit.',
-    type: 'radio',
-    required: true,
     options: [['high', 'Very important'], ['medium', 'Nice to have'], ['low', 'Not important']]
   },
   {
     id: 'priority',
     label: 'LONG-TERM FIT',
     title: 'Which statement feels closest to your ideal future?',
-    help: 'Your answer shapes the final prototype result.',
-    type: 'radio',
-    required: true,
+    help: 'Your answer shapes the next stage of the assessment.',
     options: [
       ['roots', 'Put down roots in one community'],
       ['balance', 'Balance career, home and recreation'],
@@ -105,10 +89,49 @@ const questions = [
   }
 ];
 
+const refinementQuestions = [
+  {
+    id: 'relocation',
+    label: 'FIT REFINEMENT',
+    title: 'How open are you to relocating for the right long-term opportunity?',
+    help: 'A few additional details can help us identify a better Ashgrove fit.',
+    options: [
+      ['not-open', 'I strongly prefer to remain where I am'],
+      ['possible', 'I would consider the right opportunity'],
+      ['open', 'I am open to relocating'],
+      ['ready', 'I would relocate for a strong long-term fit']
+    ]
+  },
+  {
+    id: 'communityCommitment',
+    label: 'FIT REFINEMENT',
+    title: 'How involved would you want to be in your local community?',
+    help: 'Ashgrove places a high value on residents who participate in the life around them.',
+    options: [
+      ['private', 'Mostly keep to myself'],
+      ['occasional', 'Attend occasional events'],
+      ['active', 'Be an active participant'],
+      ['embedded', 'Build much of my social life around the community']
+    ]
+  },
+  {
+    id: 'planningStyle',
+    label: 'FIT REFINEMENT',
+    title: 'Which planning style sounds most comfortable?',
+    help: 'This helps us distinguish independence from long-term community alignment.',
+    options: [
+      ['spontaneous', 'Keep plans flexible and spontaneous'],
+      ['short', 'Plan a year or two ahead'],
+      ['long', 'Plan several years ahead'],
+      ['structured', 'Build around a stable long-term plan']
+    ]
+  }
+];
+
 const priorityBaseQuestions = [
   {
     id: 'sex',
-    label: 'PRIORITY PROFILE',
+    label: 'ROUND TWO',
     title: 'How should we classify your profile?',
     help: 'This information helps tailor the next stage of your Ashgrove orientation profile.',
     options: [['male', 'Male'], ['female', 'Female']]
@@ -218,7 +241,7 @@ const femalePriorityQuestions = [
     id: 'conflictPriority',
     label: 'LONG-TERM STABILITY',
     title: 'If your personal preference conflicts with an established household plan, what should carry the most weight?',
-    help: 'This is the final compatibility question in your Priority Profile Review.',
+    help: 'This is the final compatibility question in your Round Two profile.',
     options: [
       ['individual', 'My individual preference'],
       ['compromise', 'A negotiated compromise'],
@@ -229,11 +252,13 @@ const femalePriorityQuestions = [
 ];
 
 const answers = {};
+const refinementAnswers = {};
 const priorityAnswers = {};
 let currentIndex = 0;
+let refinementIndex = 0;
 let priorityIndex = 0;
 let priorityQuestions = [];
-let inPriorityFollowup = false;
+let mode = 'primary';
 const COUNTED_KEY = 'ashgrove-assessment-counted-v1';
 
 const intro = document.getElementById('intro');
@@ -284,6 +309,13 @@ async function recordCompletion() {
   }
 }
 
+function optionMarkup(q, store) {
+  return q.options.map(([value, label]) => {
+    const checked = store[q.id] === value ? 'checked' : '';
+    return `<label class="option-row"><input type="radio" name="${q.id}" value="${value}" ${checked} /><span>${label}</span></label>`;
+  }).join('');
+}
+
 function renderQuestion() {
   const q = questions[currentIndex];
   const percent = Math.round(((currentIndex + 1) / questions.length) * 100);
@@ -293,14 +325,24 @@ function renderQuestion() {
   validationMessage.textContent = '';
   backButton.disabled = currentIndex === 0;
   backButton.style.opacity = currentIndex === 0 ? '.45' : '1';
-  nextButton.textContent = currentIndex === questions.length - 1 ? 'See my result' : 'Continue';
+  nextButton.textContent = currentIndex === questions.length - 1 ? 'Continue assessment' : 'Continue';
+  questionMount.innerHTML = `<div class="question-number">${q.label}</div><h2 class="question-title">${q.title}</h2><p class="question-help">${q.help}</p><div class="option-list">${optionMarkup(q, answers)}</div>`;
+}
 
-  const options = q.options.map(([value, label]) => {
-    const checked = answers[q.id] === value ? 'checked' : '';
-    return `<label class="option-row"><input type="radio" name="${q.id}" value="${value}" ${checked} /><span>${label}</span></label>`;
-  }).join('');
-
-  questionMount.innerHTML = `<div class="question-number">${q.label}</div><h2 class="question-title">${q.title}</h2><p class="question-help">${q.help}</p><div class="option-list">${options}</div>`;
+function renderRefinementQuestion() {
+  const q = refinementQuestions[refinementIndex];
+  const percent = Math.round(((refinementIndex + 1) / refinementQuestions.length) * 100);
+  stepLabel.textContent = `Fit refinement ${refinementIndex + 1} of ${refinementQuestions.length}`;
+  progressPercent.textContent = `${percent}%`;
+  progressBar.style.width = `${percent}%`;
+  validationMessage.textContent = '';
+  backButton.disabled = false;
+  backButton.style.opacity = '1';
+  nextButton.textContent = refinementIndex === refinementQuestions.length - 1 ? 'Recalculate fit' : 'Continue';
+  const introCopy = refinementIndex === 0
+    ? '<p class="eyebrow">ADDITIONAL MATCHING RECOMMENDED</p><h2 class="question-title">Your profile may need a little more context.</h2><p class="question-help">Three additional questions can help Ashgrove identify a stronger placement path before Round Two.</p>'
+    : '';
+  questionMount.innerHTML = `${introCopy}<div class="question-number">${q.label}</div><h2 class="question-title">${q.title}</h2><p class="question-help">${q.help}</p><div class="option-list">${optionMarkup(q, refinementAnswers)}</div>`;
 }
 
 function buildPriorityQuestions() {
@@ -312,58 +354,41 @@ function buildPriorityQuestions() {
 function renderPriorityQuestion() {
   const q = priorityQuestions[priorityIndex];
   const percent = Math.round(((priorityIndex + 1) / priorityQuestions.length) * 100);
-  stepLabel.textContent = `Priority profile ${priorityIndex + 1} of ${priorityQuestions.length}`;
+  stepLabel.textContent = `Round Two ${priorityIndex + 1} of ${priorityQuestions.length}`;
   progressPercent.textContent = `${percent}%`;
   progressBar.style.width = `${percent}%`;
   validationMessage.textContent = '';
   backButton.disabled = false;
   backButton.style.opacity = '1';
   nextButton.textContent = priorityIndex === priorityQuestions.length - 1 ? 'Complete profile' : 'Continue';
-
-  const options = q.options.map(([value, label]) => {
-    const checked = priorityAnswers[q.id] === value ? 'checked' : '';
-    return `<label class="option-row"><input type="radio" name="${q.id}" value="${value}" ${checked} /><span>${label}</span></label>`;
-  }).join('');
-
   const introCopy = priorityIndex === 0
-    ? '<p class="eyebrow">PRELIMINARY MATCH 90+</p><h2 class="question-title">You qualify for Priority Profile Review.</h2><p class="question-help">A small number of additional questions will help us complete your preliminary placement profile.</p>'
+    ? '<p class="eyebrow">ROUND TWO</p><h2 class="question-title">Your initial profile is eligible to continue.</h2><p class="question-help">The next questions refine your long-term Ashgrove placement and household profile.</p>'
     : '';
-
-  questionMount.innerHTML = `${introCopy}<div class="question-number">${q.label}</div><h2 class="question-title">${q.title}</h2><p class="question-help">${q.help}</p><div class="option-list">${options}</div>`;
+  questionMount.innerHTML = `${introCopy}<div class="question-number">${q.label}</div><h2 class="question-title">${q.title}</h2><p class="question-help">${q.help}</p><div class="option-list">${optionMarkup(q, priorityAnswers)}</div>`;
 }
 
-function collectAnswer() {
-  const q = questions[currentIndex];
+function collectFrom(q, store) {
   const selected = document.querySelector(`input[name="${q.id}"]:checked`);
   if (!selected) {
     validationMessage.textContent = 'Please choose an answer to continue.';
     return false;
   }
-  answers[q.id] = selected.value;
-  if (q.id === 'age' && selected.value === 'no') {
+  store[q.id] = selected.value;
+  return true;
+}
+
+function collectAnswer() {
+  const q = questions[currentIndex];
+  if (!collectFrom(q, answers)) return false;
+  if (q.id === 'age' && answers.age === 'no') {
     validationMessage.textContent = 'This fictional prototype is only available to adults.';
     return false;
   }
   return true;
 }
 
-function collectPriorityAnswer() {
-  const q = priorityQuestions[priorityIndex];
-  const selected = document.querySelector(`input[name="${q.id}"]:checked`);
-  if (!selected) {
-    validationMessage.textContent = 'Please choose an answer to continue.';
-    return false;
-  }
-  priorityAnswers[q.id] = selected.value;
-
-  if (q.id === 'sex') {
-    buildPriorityQuestions();
-  }
-  return true;
-}
-
-function calculateResults() {
-  let score = 60;
+function calculatePrimaryScore() {
+  let score = 48;
   const add = (condition, points) => { if (condition) score += points; };
   add(answers.career === 'professional', 5);
   add(answers.career === 'manager', 7);
@@ -385,42 +410,25 @@ function calculateResults() {
   add(answers.priority === 'advance', 2);
   if (answers.priority === 'flexibility') score -= 4;
   if (answers.children === 'no') score -= 2;
-  score = Math.max(54, Math.min(96, score));
+  return Math.max(0, Math.min(96, score));
+}
 
-  const categories = [
-    { label: 'Community Fit', value: ['roots', 'balance'].includes(answers.priority) ? 'Excellent' : 'Strong' },
-    { label: 'Professional Fit', value: ['professional', 'manager', 'executive'].includes(answers.career) ? 'Excellent' : 'Good' },
-    { label: 'Lifestyle Fit', value: answers.mobility === 'high' ? 'Exceptional' : answers.mobility === 'medium' ? 'Strong' : 'Moderate' }
-  ];
+function calculateRefinementBonus() {
+  let bonus = 0;
+  if (refinementAnswers.relocation === 'possible') bonus += 1;
+  if (refinementAnswers.relocation === 'open') bonus += 2;
+  if (refinementAnswers.relocation === 'ready') bonus += 3;
+  if (refinementAnswers.communityCommitment === 'occasional') bonus += 1;
+  if (refinementAnswers.communityCommitment === 'active') bonus += 2;
+  if (refinementAnswers.communityCommitment === 'embedded') bonus += 3;
+  if (refinementAnswers.planningStyle === 'short') bonus += 1;
+  if (refinementAnswers.planningStyle === 'long') bonus += 2;
+  if (refinementAnswers.planningStyle === 'structured') bonus += 3;
+  return bonus;
+}
 
-  if (priorityAnswers.sex === 'female' && priorityAnswers.conflictPriority) {
-    categories.push({ label: 'Household Alignment', value: formatHouseholdAlignment() });
-  }
-
-  let title = 'Promising Community Candidate';
-  let copy = 'Your answers suggest that several elements of Ashgrove may align with the future you described.';
-  if (score >= 90) {
-    title = 'Priority Community Candidate';
-    copy = priorityAnswers.sex === 'female'
-      ? 'Your profile shows exceptional alignment and has been evaluated for both professional contribution and long-term household compatibility.'
-      : 'Your profile shows exceptional alignment with Ashgrove’s long-term community model and qualifies for priority profile review.';
-  } else if (score >= 88) {
-    title = 'Exceptional Community Candidate';
-    copy = 'Your profile shows unusually strong alignment with Ashgrove’s long-term community model.';
-  } else if (score >= 78) {
-    title = 'Strong Community Candidate';
-    copy = 'Your profile suggests a strong match with Ashgrove’s professional, residential and community environment.';
-  }
-
-  const placement = score >= 90
-    ? `Priority orientation recommended. Future contribution track: ${formatCareerGoal(priorityAnswers.careerGoal)}.`
-    : score >= 88
-      ? 'Priority orientation recommended. Preliminary residential band: Established Professional.'
-      : score >= 78
-        ? 'Standard orientation recommended. Preliminary residential band: Professional Community.'
-        : 'Additional lifestyle review recommended before preliminary placement.';
-
-  return { score, categories, title, copy, placement };
+function calculateScore() {
+  return Math.min(96, calculatePrimaryScore() + calculateRefinementBonus());
 }
 
 function formatCareerGoal(value) {
@@ -445,11 +453,40 @@ function formatHouseholdAlignment() {
     ['partner-summary', 'partner-proactive'].includes(priorityAnswers.wellnessSharing),
     ['household', 'lead'].includes(priorityAnswers.conflictPriority)
   ].filter(Boolean).length;
-
   if (aligned >= 6) return 'Exceptional';
   if (aligned >= 4) return 'Strong';
   if (aligned >= 2) return 'Moderate';
   return 'Independent';
+}
+
+function calculateResults() {
+  const score = calculateScore();
+  const categories = [
+    { label: 'Community Fit', value: ['roots', 'balance'].includes(answers.priority) ? 'Excellent' : 'Strong' },
+    { label: 'Professional Fit', value: ['professional', 'manager', 'executive'].includes(answers.career) ? 'Excellent' : 'Good' },
+    { label: 'Lifestyle Fit', value: answers.mobility === 'high' ? 'Exceptional' : answers.mobility === 'medium' ? 'Strong' : 'Moderate' }
+  ];
+
+  if (priorityAnswers.sex === 'female' && priorityAnswers.conflictPriority) {
+    categories.push({ label: 'Household Alignment', value: formatHouseholdAlignment() });
+  }
+
+  let title = 'Additional Fit Review Recommended';
+  let copy = 'Your current answers suggest that Ashgrove may need more context before recommending a placement path.';
+  if (score > 50) {
+    title = score >= 90 ? 'Priority Community Candidate' : score >= 78 ? 'Strong Community Candidate' : 'Round Two Candidate';
+    copy = priorityAnswers.sex === 'female' && priorityAnswers.conflictPriority
+      ? 'Your profile has been evaluated for professional contribution, community fit and long-term household compatibility.'
+      : 'Your profile has enough initial alignment to continue through Ashgrove’s extended placement review.';
+  }
+
+  const placement = priorityAnswers.careerGoal
+    ? `Future contribution track: ${formatCareerGoal(priorityAnswers.careerGoal)}.`
+    : score <= 50
+      ? 'Additional matching questions are recommended before a preliminary placement is assigned.'
+      : 'Round Two review completed. Preliminary placement remains subject to community orientation.';
+
+  return { score, categories, title, copy, placement };
 }
 
 function showResults() {
@@ -464,6 +501,13 @@ function showResults() {
   recordCompletion();
 }
 
+function startRoundTwo() {
+  mode = 'priority';
+  priorityIndex = 0;
+  priorityQuestions = [...priorityBaseQuestions];
+  renderPriorityQuestion();
+}
+
 document.getElementById('startButton').addEventListener('click', () => {
   intro.classList.add('hidden');
   survey.classList.remove('hidden');
@@ -471,59 +515,100 @@ document.getElementById('startButton').addEventListener('click', () => {
 });
 
 nextButton.addEventListener('click', () => {
-  if (inPriorityFollowup) {
-    if (!collectPriorityAnswer()) return;
-    if (priorityIndex === priorityQuestions.length - 1) {
-      showResults();
+  if (mode === 'primary') {
+    if (!collectAnswer()) return;
+    if (currentIndex < questions.length - 1) {
+      currentIndex += 1;
+      renderQuestion();
       return;
     }
-    priorityIndex += 1;
-    renderPriorityQuestion();
+
+    if (calculatePrimaryScore() > 50) {
+      startRoundTwo();
+    } else {
+      mode = 'refinement';
+      refinementIndex = 0;
+      renderRefinementQuestion();
+    }
     return;
   }
 
-  if (!collectAnswer()) return;
-  if (currentIndex === questions.length - 1) {
-    const result = calculateResults();
-    if (result.score >= 90) {
-      inPriorityFollowup = true;
-      priorityIndex = 0;
-      priorityQuestions = [...priorityBaseQuestions];
-      renderPriorityQuestion();
+  if (mode === 'refinement') {
+    const q = refinementQuestions[refinementIndex];
+    if (!collectFrom(q, refinementAnswers)) return;
+    if (refinementIndex < refinementQuestions.length - 1) {
+      refinementIndex += 1;
+      renderRefinementQuestion();
+      return;
+    }
+
+    if (calculateScore() > 50) {
+      startRoundTwo();
     } else {
       showResults();
     }
     return;
   }
-  currentIndex += 1;
-  renderQuestion();
+
+  if (mode === 'priority') {
+    const q = priorityQuestions[priorityIndex];
+    if (!collectFrom(q, priorityAnswers)) return;
+    if (q.id === 'sex') buildPriorityQuestions();
+    if (priorityIndex < priorityQuestions.length - 1) {
+      priorityIndex += 1;
+      renderPriorityQuestion();
+    } else {
+      showResults();
+    }
+  }
 });
 
 backButton.addEventListener('click', () => {
-  if (inPriorityFollowup) {
-    if (priorityIndex > 0) {
-      priorityIndex -= 1;
-      renderPriorityQuestion();
+  if (mode === 'primary') {
+    if (currentIndex === 0) return;
+    currentIndex -= 1;
+    renderQuestion();
+    return;
+  }
+
+  if (mode === 'refinement') {
+    if (refinementIndex > 0) {
+      refinementIndex -= 1;
+      renderRefinementQuestion();
     } else {
-      inPriorityFollowup = false;
+      mode = 'primary';
       currentIndex = questions.length - 1;
       renderQuestion();
     }
     return;
   }
 
-  if (currentIndex === 0) return;
-  currentIndex -= 1;
-  renderQuestion();
+  if (mode === 'priority') {
+    if (priorityIndex > 0) {
+      priorityIndex -= 1;
+      renderPriorityQuestion();
+    } else {
+      mode = Object.keys(refinementAnswers).length ? 'refinement' : 'primary';
+      if (mode === 'refinement') {
+        refinementIndex = refinementQuestions.length - 1;
+        renderRefinementQuestion();
+      } else {
+        currentIndex = questions.length - 1;
+        renderQuestion();
+      }
+    }
+  }
 });
 
 document.getElementById('restartButton').addEventListener('click', () => {
   Object.keys(answers).forEach(key => delete answers[key]);
+  Object.keys(refinementAnswers).forEach(key => delete refinementAnswers[key]);
   Object.keys(priorityAnswers).forEach(key => delete priorityAnswers[key]);
   currentIndex = 0;
+  refinementIndex = 0;
   priorityIndex = 0;
   priorityQuestions = [];
-  inPriorityFollowup = false;
+  mode = 'primary';
   results.classList.add('hidden');
   intro.classList.remove('hidden');
 });
