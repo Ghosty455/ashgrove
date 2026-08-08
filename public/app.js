@@ -105,8 +105,38 @@ const questions = [
   }
 ];
 
+const priorityQuestions = [
+  {
+    id: 'sex',
+    label: 'PRIORITY PROFILE',
+    title: 'How should we classify your profile?',
+    help: 'This information helps tailor the next stage of your Ashgrove orientation profile.',
+    options: [
+      ['male', 'Male'],
+      ['female', 'Female']
+    ]
+  },
+  {
+    id: 'careerGoal',
+    label: 'FUTURE CONTRIBUTION',
+    title: 'Which path best matches your long-term goals?',
+    help: 'Choose the area in which you would most like to build your future.',
+    options: [
+      ['clean-energy', 'Clean energy & environmental systems'],
+      ['technology', 'Advanced technology & AI'],
+      ['medical', 'Medical & life sciences'],
+      ['infrastructure', 'Infrastructure & community operations'],
+      ['education', 'Education & research'],
+      ['homemaker', 'Home & family management']
+    ]
+  }
+];
+
 const answers = {};
+const priorityAnswers = {};
 let currentIndex = 0;
+let priorityIndex = 0;
+let inPriorityFollowup = false;
 const COUNTED_KEY = 'ashgrove-assessment-counted-v1';
 
 const intro = document.getElementById('intro');
@@ -176,6 +206,31 @@ function renderQuestion() {
   questionMount.innerHTML = `<div class="question-number">${q.label}</div><h2 class="question-title">${q.title}</h2><p class="question-help">${q.help}</p><div class="option-list">${options}</div>`;
 }
 
+function renderPriorityQuestion() {
+  const q = priorityQuestions[priorityIndex];
+  const percent = priorityIndex === 0 ? 50 : 100;
+  stepLabel.textContent = `Priority profile ${priorityIndex + 1} of ${priorityQuestions.length}`;
+  progressPercent.textContent = `${percent}%`;
+  progressBar.style.width = `${percent}%`;
+  validationMessage.textContent = '';
+  backButton.disabled = false;
+  backButton.style.opacity = '1';
+  nextButton.textContent = priorityIndex === priorityQuestions.length - 1 ? 'Complete profile' : 'Continue';
+
+  const options = q.options.map(([value, label]) => {
+    const checked = priorityAnswers[q.id] === value ? 'checked' : '';
+    return `<label class="option-row"><input type="radio" name="${q.id}" value="${value}" ${checked} /><span>${label}</span></label>`;
+  }).join('');
+
+  questionMount.innerHTML = `
+    ${priorityIndex === 0 ? '<p class="eyebrow">PRELIMINARY MATCH 90+</p><h2 class="question-title">You qualify for Priority Profile Review.</h2><p class="question-help">We need two additional details to complete your preliminary placement profile.</p>' : ''}
+    <div class="question-number">${q.label}</div>
+    <h2 class="question-title">${q.title}</h2>
+    <p class="question-help">${q.help}</p>
+    <div class="option-list">${options}</div>
+  `;
+}
+
 function collectAnswer() {
   const q = questions[currentIndex];
   const selected = document.querySelector(`input[name="${q.id}"]:checked`);
@@ -188,6 +243,17 @@ function collectAnswer() {
     validationMessage.textContent = 'This fictional prototype is only available to adults.';
     return false;
   }
+  return true;
+}
+
+function collectPriorityAnswer() {
+  const q = priorityQuestions[priorityIndex];
+  const selected = document.querySelector(`input[name="${q.id}"]:checked`);
+  if (!selected) {
+    validationMessage.textContent = 'Please choose an answer to continue.';
+    return false;
+  }
+  priorityAnswers[q.id] = selected.value;
   return true;
 }
 
@@ -224,7 +290,10 @@ function calculateResults() {
 
   let title = 'Promising Community Candidate';
   let copy = 'Your answers suggest that several elements of Ashgrove may align with the future you described.';
-  if (score >= 88) {
+  if (score >= 90) {
+    title = 'Priority Community Candidate';
+    copy = 'Your profile shows exceptional alignment with Ashgrove’s long-term community model and qualifies for priority profile review.';
+  } else if (score >= 88) {
     title = 'Exceptional Community Candidate';
     copy = 'Your profile shows unusually strong alignment with Ashgrove’s long-term community model.';
   } else if (score >= 78) {
@@ -232,13 +301,27 @@ function calculateResults() {
     copy = 'Your profile suggests a strong match with Ashgrove’s professional, residential and community environment.';
   }
 
-  const placement = score >= 88
-    ? 'Priority orientation recommended. Preliminary residential band: Established Professional.'
-    : score >= 78
-      ? 'Standard orientation recommended. Preliminary residential band: Professional Community.'
-      : 'Additional lifestyle review recommended before preliminary placement.';
+  const placement = score >= 90
+    ? `Priority orientation recommended. Future contribution track: ${formatCareerGoal(priorityAnswers.careerGoal)}.`
+    : score >= 88
+      ? 'Priority orientation recommended. Preliminary residential band: Established Professional.'
+      : score >= 78
+        ? 'Standard orientation recommended. Preliminary residential band: Professional Community.'
+        : 'Additional lifestyle review recommended before preliminary placement.';
 
   return { score, categories, title, copy, placement };
+}
+
+function formatCareerGoal(value) {
+  const labels = {
+    'clean-energy': 'Clean Energy & Environmental Systems',
+    technology: 'Advanced Technology & AI',
+    medical: 'Medical & Life Sciences',
+    infrastructure: 'Infrastructure & Community Operations',
+    education: 'Education & Research',
+    homemaker: 'Home & Family Management'
+  };
+  return labels[value] || 'To be determined';
 }
 
 function showResults() {
@@ -260,9 +343,27 @@ document.getElementById('startButton').addEventListener('click', () => {
 });
 
 nextButton.addEventListener('click', () => {
+  if (inPriorityFollowup) {
+    if (!collectPriorityAnswer()) return;
+    if (priorityIndex === priorityQuestions.length - 1) {
+      showResults();
+      return;
+    }
+    priorityIndex += 1;
+    renderPriorityQuestion();
+    return;
+  }
+
   if (!collectAnswer()) return;
   if (currentIndex === questions.length - 1) {
-    showResults();
+    const result = calculateResults();
+    if (result.score >= 90) {
+      inPriorityFollowup = true;
+      priorityIndex = 0;
+      renderPriorityQuestion();
+    } else {
+      showResults();
+    }
     return;
   }
   currentIndex += 1;
@@ -270,6 +371,18 @@ nextButton.addEventListener('click', () => {
 });
 
 backButton.addEventListener('click', () => {
+  if (inPriorityFollowup) {
+    if (priorityIndex > 0) {
+      priorityIndex -= 1;
+      renderPriorityQuestion();
+    } else {
+      inPriorityFollowup = false;
+      currentIndex = questions.length - 1;
+      renderQuestion();
+    }
+    return;
+  }
+
   if (currentIndex === 0) return;
   currentIndex -= 1;
   renderQuestion();
@@ -277,7 +390,10 @@ backButton.addEventListener('click', () => {
 
 document.getElementById('restartButton').addEventListener('click', () => {
   Object.keys(answers).forEach(key => delete answers[key]);
+  Object.keys(priorityAnswers).forEach(key => delete priorityAnswers[key]);
   currentIndex = 0;
+  priorityIndex = 0;
+  inPriorityFollowup = false;
   results.classList.add('hidden');
   intro.classList.remove('hidden');
 });
