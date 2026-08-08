@@ -1,8 +1,25 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "ashgrove",
+  "main": "./worker.js",
   "compatibility_date": "2026-08-08",
   "assets": {
-    "directory": "."
+    "directory": ".",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "ASSESSMENT_COUNTER",
+        "class_name": "AssessmentCounter"
+      }
+    ]
+  },
+  "exports": {
+    "AssessmentCounter": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    }
   }
 }
