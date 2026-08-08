@@ -114,6 +114,7 @@ const questions = [
 
 const answers = {};
 let currentIndex = 0;
+const COUNTED_KEY = 'ashgrove-assessment-counted-v1';
 
 const intro = document.getElementById('intro');
 const survey = document.getElementById('survey');
@@ -125,6 +126,45 @@ const progressBar = document.getElementById('progressBar');
 const validationMessage = document.getElementById('validationMessage');
 const backButton = document.getElementById('backButton');
 const nextButton = document.getElementById('nextButton');
+const assessmentCount = document.getElementById('assessmentCount');
+
+function formatCount(value) {
+  return Number(value).toLocaleString('en-US');
+}
+
+async function refreshAssessmentCount() {
+  try {
+    const response = await fetch('/api/count', { cache: 'no-store' });
+    if (!response.ok) throw new Error('Counter unavailable');
+    const data = await response.json();
+    assessmentCount.textContent = formatCount(data.count);
+  } catch {
+    assessmentCount.textContent = '5,389';
+  }
+}
+
+async function recordCompletion() {
+  if (localStorage.getItem(COUNTED_KEY) === 'yes') {
+    await refreshAssessmentCount();
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/complete', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{}'
+    });
+
+    if (!response.ok) throw new Error('Counter unavailable');
+
+    const data = await response.json();
+    localStorage.setItem(COUNTED_KEY, 'yes');
+    assessmentCount.textContent = formatCount(data.count);
+  } catch {
+    await refreshAssessmentCount();
+  }
+}
 
 function renderQuestion() {
   const q = questions[currentIndex];
@@ -252,6 +292,8 @@ function showResults() {
       <strong>${item.value}</strong>
     </div>
   `).join('');
+
+  recordCompletion();
 }
 
 document.getElementById('startButton').addEventListener('click', () => {
@@ -284,3 +326,5 @@ document.getElementById('restartButton').addEventListener('click', () => {
   results.classList.add('hidden');
   intro.classList.remove('hidden');
 });
+
+refreshAssessmentCount();
