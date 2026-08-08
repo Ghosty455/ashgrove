@@ -34,7 +34,7 @@ button { cursor: pointer; }
 }
 
 .site-header,
-footer {
+.footer-main {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -253,8 +253,24 @@ h2 { font-size: clamp(30px, 4vw, 48px); }
 
 footer {
   margin-top: 36px;
-  padding: 18px 4px;
+  padding: 18px 4px 0;
   border-top: 1px solid rgba(73, 103, 86, .16);
+}
+
+.fiction-disclaimer {
+  max-width: 980px;
+  margin: 16px auto 0;
+  padding-top: 14px;
+  border-top: 1px solid rgba(73, 103, 86, .10);
+  color: #7a847c;
+  font-size: 10px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.fiction-disclaimer strong {
+  color: #667267;
+  font-weight: 700;
 }
 
 @media (max-width: 700px) {
@@ -263,5 +279,6 @@ footer {
   .hero-grid, .result-grid { grid-template-columns: 1fr; }
   .survey-actions { align-items: stretch; }
   .survey-actions button { flex: 1; }
-  footer { align-items: flex-start; flex-direction: column; }
+  .footer-main { align-items: flex-start; flex-direction: column; }
+  .fiction-disclaimer { text-align: left; }
 }
